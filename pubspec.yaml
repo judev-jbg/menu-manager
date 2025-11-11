@@ -1,0 +1,60 @@
+name: menu_manager
+description: Aplicación personal para gestionar menús diarios y lista de compras
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  provider: ^6.1.1
+
+  # Database
+  sqflite: ^2.3.0
+  path_provider: ^2.1.1
+  path: ^1.8.3
+
+  # UI Components
+  flutter_slidable: ^3.0.0
+  google_fonts: ^6.1.0
+
+  # Utilities
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+  # Icons y Splash
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.3.5
+
+flutter:
+  uses-material-design: true
+
+  # Agrega tus iconos aquí cuando los tengas
+  assets:
+    - assets/icons/launcher_icon.png
+    - assets/icons/splash_icon.png
+
+# Configuración de iconos (ejecutar: flutter pub run flutter_launcher_icons)
+flutter_launcher_icons:
+  android: true
+  image_path: "assets/icons/launcher_icon.png"
+  adaptive_icon_background: "#f5f5f5"
+  adaptive_icon_foreground: "assets/icons/launcher_icon.png"
+
+# Configuración de splash screen (ejecutar: flutter pub run flutter_native_splash:create)
+flutter_native_splash:
+  android: true
+  color: "#f5f5f5"
+  image: "assets/icons/splash_icon.png"
+  android_12:
+    color: "#f5f5f5"
+    image: "assets/icons/splash_icon.png"
+    icon_background_color: "#f5f5f5"
