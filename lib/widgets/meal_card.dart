@@ -32,22 +32,9 @@ class MealCard extends StatelessWidget {
 
     return Slidable(
       key: ValueKey(mealDay.id),
-      endActionPane: ActionPane(
-        motion: const ScrollMotion(),
-        extentRatio: 0.3,
-        children: [
-          SlidableAction(
-            onPressed: (_) => onDelete(),
-            backgroundColor: Colors.red,
-            foregroundColor: Colors.white,
-            icon: Icons.delete,
-            label: 'Eliminar',
-            autoClose: true,
-          ),
-        ],
-      ),
+
       // Swipe a la izquierda = Editar
-      startActionPane: ActionPane(
+      endActionPane: ActionPane(
         motion: const ScrollMotion(),
         extentRatio: 0.3,
         children: [
@@ -62,7 +49,20 @@ class MealCard extends StatelessWidget {
         ],
       ),
       // Swipe a la derecha = Eliminar
-
+      startActionPane: ActionPane(
+        motion: const ScrollMotion(),
+        extentRatio: 0.3,
+        children: [
+          SlidableAction(
+            onPressed: (_) => onDelete(),
+            backgroundColor: Colors.red,
+            foregroundColor: Colors.white,
+            icon: Icons.delete,
+            label: 'Eliminar',
+            autoClose: true,
+          ),
+        ],
+      ),
       child: Opacity(
         opacity: isPast ? 0.5 : 1.0,
         child: Stack(
@@ -88,7 +88,7 @@ class MealCard extends StatelessWidget {
 
                     // Desayuno
                     _buildMealRow(
-                      icon: Icons.breakfast_dining,
+                      icon: Icons.local_cafe,
                       label: 'Desayuno',
                       value: mealDay.breakfast,
                       isPast: isPast,
@@ -106,7 +106,7 @@ class MealCard extends StatelessWidget {
 
                     // Cena
                     _buildMealRow(
-                      icon: Icons.dinner_dining,
+                      icon: Icons.fastfood,
                       label: 'Cena',
                       value: mealDay.dinner,
                       isPast: isPast,

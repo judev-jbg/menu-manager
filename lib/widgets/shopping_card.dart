@@ -21,7 +21,7 @@ class ShoppingCard extends StatelessWidget {
     return Slidable(
       key: ValueKey(item.id),
       // Swipe a la izquierda = Editar
-      startActionPane: ActionPane(
+      endActionPane: ActionPane(
         motion: const ScrollMotion(),
         children: [
           SlidableAction(
@@ -34,7 +34,7 @@ class ShoppingCard extends StatelessWidget {
         ],
       ),
       // Swipe a la derecha = Eliminar
-      endActionPane: ActionPane(
+      startActionPane: ActionPane(
         motion: const ScrollMotion(),
         children: [
           SlidableAction(
@@ -52,10 +52,10 @@ class ShoppingCard extends StatelessWidget {
           padding: const EdgeInsets.all(16.0),
           child: Row(
             children: [
-              Icon(
-                Icons.shopping_basket,
+              const Icon(
+                Icons.shopping_basket_outlined,
                 size: 24,
-                color: const Color(0xFF54D3C2),
+                color: Color(0xFF54D3C2),
               ),
               const SizedBox(width: 16),
               Expanded(
