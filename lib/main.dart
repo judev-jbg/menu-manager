@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 // Providers
 import 'providers/meals_provider.dart';
@@ -9,7 +11,13 @@ import 'providers/shopping_provider.dart';
 // Screens
 import 'screens/home_screen.dart';
 
-void main() {
+void main() async {
+  // Asegurar que Flutter esté inicializado
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Inicializar formatos de fecha en español
+  await initializeDateFormatting('es_ES', null);
+
   runApp(const MenuManagerApp());
 }
 
@@ -30,6 +38,15 @@ class MenuManagerApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: _buildTheme(),
         home: const HomeScreen(),
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('es', 'ES'),
+        ],
+        locale: const Locale('es', 'ES'),
       ),
     );
   }

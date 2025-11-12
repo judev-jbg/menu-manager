@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import '../models/meal_day.dart';
+import '../models/shopping_item.dart';
 import '../providers/meals_provider.dart';
 import '../providers/shopping_provider.dart';
+import '../widgets/meal_list_view.dart';
+import '../widgets/shopping_list_view.dart';
+import '../widgets/create_meal_dialog.dart';
+import '../widgets/create_shopping_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -46,24 +52,99 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   // Callback para el botón FAB
-  void _onFabPressed() {
+  Future<void> _onFabPressed() async {
     if (_tabController.index == 0) {
-      // TODO: Fase 4 - Mostrar diálogo para crear MealDay
-      _showTemporaryMessage('Crear Comida (próxima fase)');
+      // Mostrar diálogo para crear MealDay
+      await _createMealDay();
     } else {
-      // TODO: Fase 4 - Mostrar diálogo para crear ShoppingItem
-      _showTemporaryMessage('Crear Item de Compra (próxima fase)');
+      // Mostrar diálogo para crear ShoppingItem
+      await _createShoppingItem();
     }
   }
 
-  // Mensaje temporal para la Fase 3
-  void _showTemporaryMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 2),
-      ),
+  // Muestra el diálogo para crear un nuevo MealDay
+  Future<void> _createMealDay() async {
+    MealDay? result;
+    bool shouldClose = false;
+
+    while (!shouldClose) {
+      result = await showModalBottomSheet<MealDay>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        isDismissible: true,
+        builder: (context) => CreateMealDialog(mealDay: result),
+      );
+
+      if (result == null) {
+        shouldClose = true;
+        break;
+      }
+
+      if (mounted) {
+        final provider = context.read<MealsProvider>();
+        final success = await provider.createMealDay(result);
+
+        if (success) {
+          shouldClose = true;
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Comida creada exitosamente'),
+                backgroundColor: Color(0xFF54D3C2),
+              ),
+            );
+          }
+        } else {
+          // Error: mostrar mensaje pero NO cerrar el modal
+          if (mounted && provider.errorMessage != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(provider.errorMessage!),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+            // El loop continúa, el modal se volverá a mostrar con los datos
+          } else {
+            shouldClose = true;
+          }
+        }
+      }
+    }
+  }
+
+  // Muestra el diálogo para crear un nuevo ShoppingItem
+  Future<void> _createShoppingItem() async {
+    final result = await showModalBottomSheet<ShoppingItem>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const CreateShoppingDialog(),
     );
+
+    if (result != null && mounted) {
+      final provider = context.read<ShoppingProvider>();
+      final success = await provider.createShoppingItem(result);
+
+      if (mounted) {
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Item agregado exitosamente'),
+              backgroundColor: Color(0xFF54D3C2),
+            ),
+          );
+        } else if (provider.errorMessage != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(provider.errorMessage!),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 
   @override
@@ -115,10 +196,10 @@ class _HomeScreenState extends State<HomeScreen>
       body: TabBarView(
         controller: _tabController,
         children: const [
-          // Tab 1: Lista de comidas (implementación temporal)
-          _MealsListView(),
-          // Tab 2: Lista de compras (implementación temporal)
-          _ShoppingListView(),
+          // Tab 1: Lista de comidas con cards personalizadas
+          MealListView(),
+          // Tab 2: Lista de compras con cards personalizadas
+          ShoppingListView(),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -127,236 +208,6 @@ class _HomeScreenState extends State<HomeScreen>
         onPressed: _onFabPressed,
         child: const Icon(Icons.add),
       ),
-    );
-  }
-}
-
-// ==================== VISTA TEMPORAL DE COMIDAS ====================
-class _MealsListView extends StatelessWidget {
-  const _MealsListView();
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<MealsProvider>(
-      builder: (context, mealsProvider, child) {
-        // Estado de carga
-        if (mealsProvider.isLoading) {
-          return const Center(
-            child: CircularProgressIndicator(
-              color: Color(0xFF54D3C2),
-            ),
-          );
-        }
-
-        // Mensaje de error
-        if (mealsProvider.errorMessage != null) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    size: 60,
-                    color: Colors.red,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    mealsProvider.errorMessage!,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(color: Colors.red),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => mealsProvider.loadMealDays(),
-                    child: const Text('Reintentar'),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
-        // Lista vacía
-        if (mealsProvider.mealDays.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.restaurant_menu,
-                  size: 80,
-                  color: Colors.grey[300],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'No hay comidas registradas',
-                  style: GoogleFonts.inter(
-                    fontSize: 18,
-                    color: Colors.grey,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Presiona + para crear una',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: Colors.grey[400],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        // Lista con datos (vista temporal simple)
-        return ListView.builder(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          itemCount: mealsProvider.mealDays.length,
-          itemBuilder: (context, index) {
-            final mealDay = mealsProvider.mealDays[index];
-            return Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Opacity(
-                opacity: mealDay.isPastDate ? 0.5 : 1.0,
-                child: ListTile(
-                  leading: Icon(
-                    Icons.calendar_today,
-                    color: mealDay.isPastDate
-                        ? Colors.grey
-                        : const Color(0xFF54D3C2),
-                  ),
-                  title: Text(
-                    '${mealDay.date.day}/${mealDay.date.month}/${mealDay.date.year}',
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w600,
-                      decoration: mealDay.isPastDate
-                          ? TextDecoration.lineThrough
-                          : null,
-                    ),
-                  ),
-                  subtitle: Text(
-                    'D: ${mealDay.breakfast ?? "—"} | C: ${mealDay.lunch ?? "—"} | Ce: ${mealDay.dinner ?? "—"}',
-                    style: GoogleFonts.inter(fontSize: 12),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-}
-
-// ==================== VISTA TEMPORAL DE COMPRAS ====================
-class _ShoppingListView extends StatelessWidget {
-  const _ShoppingListView();
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<ShoppingProvider>(
-      builder: (context, shoppingProvider, child) {
-        // Estado de carga
-        if (shoppingProvider.isLoading) {
-          return const Center(
-            child: CircularProgressIndicator(
-              color: Color(0xFF54D3C2),
-            ),
-          );
-        }
-
-        // Mensaje de error
-        if (shoppingProvider.errorMessage != null) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    size: 60,
-                    color: Colors.red,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    shoppingProvider.errorMessage!,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(color: Colors.red),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => shoppingProvider.loadShoppingItems(),
-                    child: const Text('Reintentar'),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
-        // Lista vacía
-        if (shoppingProvider.shoppingItems.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.shopping_cart,
-                  size: 80,
-                  color: Colors.grey[300],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Lista de compras vacía',
-                  style: GoogleFonts.inter(
-                    fontSize: 18,
-                    color: Colors.grey,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Presiona + para agregar items',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: Colors.grey[400],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        // Lista con datos (vista temporal simple)
-        return ListView.builder(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          itemCount: shoppingProvider.shoppingItems.length,
-          itemBuilder: (context, index) {
-            final item = shoppingProvider.shoppingItems[index];
-            return Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: ListTile(
-                leading: const Icon(
-                  Icons.shopping_basket,
-                  color: Color(0xFF54D3C2),
-                ),
-                title: Text(
-                  item.description,
-                  style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                trailing: const Icon(Icons.chevron_right),
-              ),
-            );
-          },
-        );
-      },
     );
   }
 }
