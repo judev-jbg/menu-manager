@@ -48,7 +48,7 @@ flutter:
 flutter_launcher_icons:
   android: true
   image_path: "assets/icons/launcher_icon.png"
-  adaptive_icon_background: "#f5f5f5"
+  adaptive_icon_background: "#54D3C2"
   adaptive_icon_foreground: "assets/icons/launcher_icon.png"
 
 # Configuración de splash screen (ejecutar: flutter pub run flutter_native_splash:create)

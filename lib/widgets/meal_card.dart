@@ -150,8 +150,9 @@ class MealCard extends StatelessWidget {
     required bool isPast,
   }) {
     final hasValue = value != null && value.isNotEmpty;
-    final displayText =
-        hasValue ? value : 'No has asignado el ${label.toLowerCase()}';
+    final displayText = hasValue
+        ? value
+        : 'No has asignado ${label == 'Desayuno' ? 'el' : 'la'} ${label.toLowerCase()}';
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
