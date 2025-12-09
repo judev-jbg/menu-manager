@@ -82,11 +82,17 @@ class MealListView extends StatelessWidget {
 
   // Muestra el diálogo para editar
   Future<void> _editMealDay(BuildContext context, MealDay mealDay) async {
+    // Obtener la lista de meals antes del async gap
+    final existingMeals = context.read<MealsProvider>().mealDays;
+
     final result = await showModalBottomSheet<MealDay>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => CreateMealDialog(mealDay: mealDay),
+      builder: (context) => CreateMealDialog(
+        mealDay: mealDay,
+        existingMeals: existingMeals,
+      ),
     );
 
     if (result != null && context.mounted) {

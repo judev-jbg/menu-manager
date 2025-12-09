@@ -68,12 +68,18 @@ class _HomeScreenState extends State<HomeScreen>
     bool shouldClose = false;
 
     while (!shouldClose) {
+      // Obtener la lista actual de meals para calcular la fecha inicial
+      final existingMeals = context.read<MealsProvider>().mealDays;
+
       result = await showModalBottomSheet<MealDay>(
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
         isDismissible: true,
-        builder: (context) => CreateMealDialog(mealDay: result),
+        builder: (context) => CreateMealDialog(
+          mealDay: result,
+          existingMeals: existingMeals,
+        ),
       );
 
       if (result == null) {

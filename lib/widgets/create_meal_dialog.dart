@@ -6,8 +6,9 @@ import '../models/meal_day.dart';
 // BottomSheet para crear o editar un MealDay
 class CreateMealDialog extends StatefulWidget {
   final MealDay? mealDay; // Si es null, es creación; si no, es edición
+  final List<MealDay>? existingMeals; // Lista de meals existentes para calcular la fecha inicial
 
-  const CreateMealDialog({super.key, this.mealDay});
+  const CreateMealDialog({super.key, this.mealDay, this.existingMeals});
 
   @override
   State<CreateMealDialog> createState() => _CreateMealDialogState();
@@ -37,8 +38,8 @@ class _CreateMealDialogState extends State<CreateMealDialog> {
           TextEditingController(text: widget.mealDay!.dinner ?? '');
       _canSave = true;
     } else {
-      // Si estamos creando, usar valores por defecto
-      _selectedDate = DateTime.now();
+      // Si estamos creando, calcular la fecha inicial
+      _selectedDate = _calculateInitialDate();
       _breakfastController = TextEditingController();
       _lunchController = TextEditingController();
       _dinnerController = TextEditingController();
@@ -46,6 +47,25 @@ class _CreateMealDialogState extends State<CreateMealDialog> {
     _breakfastController.addListener(_validateFields);
     _lunchController.addListener(_validateFields);
     _dinnerController.addListener(_validateFields);
+  }
+
+  // Calcula la fecha inicial para una nueva comida
+  DateTime _calculateInitialDate() {
+    // Si no hay comidas existentes, usar hoy
+    if (widget.existingMeals == null || widget.existingMeals!.isEmpty) {
+      return DateTime.now();
+    }
+
+    // Encontrar la fecha más alta
+    DateTime maxDate = widget.existingMeals!.first.date;
+    for (var meal in widget.existingMeals!) {
+      if (meal.date.isAfter(maxDate)) {
+        maxDate = meal.date;
+      }
+    }
+
+    // Sumar un día a la fecha más alta
+    return maxDate.add(const Duration(days: 1));
   }
 
   void _validateFields() {
