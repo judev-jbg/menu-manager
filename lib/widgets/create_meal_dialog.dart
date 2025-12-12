@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../models/meal_day.dart';
+import '../services/meal_suggestions_service.dart';
 
 // BottomSheet para crear o editar un MealDay
 class CreateMealDialog extends StatefulWidget {
@@ -20,6 +21,18 @@ class _CreateMealDialogState extends State<CreateMealDialog> {
   late TextEditingController _dinnerController;
   late DateTime _selectedDate;
   bool _canSave = false;
+
+  final MealSuggestionsService _suggestionsService = MealSuggestionsService();
+
+  // Estado para las sugerencias de cada campo
+  List<String> _breakfastSuggestions = [];
+  List<String> _lunchSuggestions = [];
+  List<String> _dinnerSuggestions = [];
+
+  // FocusNodes para detectar cuando un campo está activo
+  final FocusNode _breakfastFocus = FocusNode();
+  final FocusNode _lunchFocus = FocusNode();
+  final FocusNode _dinnerFocus = FocusNode();
 
   bool get _isEditing => widget.mealDay != null;
 
@@ -47,6 +60,11 @@ class _CreateMealDialogState extends State<CreateMealDialog> {
     _breakfastController.addListener(_validateFields);
     _lunchController.addListener(_validateFields);
     _dinnerController.addListener(_validateFields);
+
+    // Listeners para actualizar las sugerencias
+    _breakfastController.addListener(() => _updateSuggestions('breakfast'));
+    _lunchController.addListener(() => _updateSuggestions('lunch'));
+    _dinnerController.addListener(() => _updateSuggestions('dinner'));
   }
 
   // Calcula la fecha inicial para una nueva comida
@@ -80,6 +98,65 @@ class _CreateMealDialogState extends State<CreateMealDialog> {
     }
   }
 
+  // Actualiza las sugerencias según el campo activo
+  Future<void> _updateSuggestions(String field) async {
+    final String query;
+    switch (field) {
+      case 'breakfast':
+        query = _breakfastController.text;
+        break;
+      case 'lunch':
+        query = _lunchController.text;
+        break;
+      case 'dinner':
+        query = _dinnerController.text;
+        break;
+      default:
+        return;
+    }
+
+    final suggestions = await _suggestionsService.searchSuggestions(query);
+
+    if (!mounted) return;
+
+    setState(() {
+      switch (field) {
+        case 'breakfast':
+          _breakfastSuggestions = suggestions;
+          break;
+        case 'lunch':
+          _lunchSuggestions = suggestions;
+          break;
+        case 'dinner':
+          _dinnerSuggestions = suggestions;
+          break;
+      }
+    });
+  }
+
+  // Selecciona una sugerencia y la establece en el campo correspondiente
+  void _selectSuggestion(String field, String suggestion) {
+    setState(() {
+      switch (field) {
+        case 'breakfast':
+          _breakfastController.text = suggestion;
+          _breakfastSuggestions = [];
+          _breakfastFocus.unfocus();
+          break;
+        case 'lunch':
+          _lunchController.text = suggestion;
+          _lunchSuggestions = [];
+          _lunchFocus.unfocus();
+          break;
+        case 'dinner':
+          _dinnerController.text = suggestion;
+          _dinnerSuggestions = [];
+          _dinnerFocus.unfocus();
+          break;
+      }
+    });
+  }
+
   @override
   void dispose() {
     _breakfastController.removeListener(_validateFields);
@@ -88,6 +165,9 @@ class _CreateMealDialogState extends State<CreateMealDialog> {
     _breakfastController.dispose();
     _lunchController.dispose();
     _dinnerController.dispose();
+    _breakfastFocus.dispose();
+    _lunchFocus.dispose();
+    _dinnerFocus.dispose();
     super.dispose();
   }
 
@@ -129,7 +209,7 @@ class _CreateMealDialogState extends State<CreateMealDialog> {
   }
 
   // Valida y guarda el MealDay
-  void _save() {
+  Future<void> _save() async {
     // Validar que al menos una comida esté asignada
     final breakfast = _breakfastController.text.trim();
     final lunch = _lunchController.text.trim();
@@ -145,6 +225,9 @@ class _CreateMealDialogState extends State<CreateMealDialog> {
       return;
     }
 
+    // Guardar las comidas en las sugerencias
+    await _suggestionsService.addSuggestions([breakfast, lunch, dinner]);
+
     // Crear o actualizar el MealDay
     final mealDay = MealDay(
       id: widget.mealDay?.id,
@@ -155,7 +238,9 @@ class _CreateMealDialogState extends State<CreateMealDialog> {
     );
 
     // Retornar el MealDay al llamador
-    Navigator.of(context).pop(mealDay);
+    if (mounted) {
+      Navigator.of(context).pop(mealDay);
+    }
   }
 
   @override
@@ -230,6 +315,9 @@ class _CreateMealDialogState extends State<CreateMealDialog> {
                 label: 'Desayuno',
                 icon: Icons.wb_sunny,
                 hint: 'Ej: Huevos con tocino',
+                field: 'breakfast',
+                focusNode: _breakfastFocus,
+                suggestions: _breakfastSuggestions,
               ),
               const SizedBox(height: 16),
 
@@ -239,6 +327,9 @@ class _CreateMealDialogState extends State<CreateMealDialog> {
                 label: 'Comida',
                 icon: Icons.restaurant,
                 hint: 'Ej: Pasta con pollo',
+                field: 'lunch',
+                focusNode: _lunchFocus,
+                suggestions: _lunchSuggestions,
               ),
               const SizedBox(height: 16),
 
@@ -248,6 +339,9 @@ class _CreateMealDialogState extends State<CreateMealDialog> {
                 label: 'Cena',
                 icon: Icons.nightlight,
                 hint: 'Ej: Ensalada César',
+                field: 'dinner',
+                focusNode: _dinnerFocus,
+                suggestions: _dinnerSuggestions,
               ),
               const SizedBox(height: 8),
 
@@ -316,12 +410,15 @@ class _CreateMealDialogState extends State<CreateMealDialog> {
     );
   }
 
-  // Widget para cada campo de comida
+  // Widget para cada campo de comida con autocompletado
   Widget _buildMealField({
     required TextEditingController controller,
     required String label,
     required IconData icon,
     required String hint,
+    required String field,
+    required FocusNode focusNode,
+    required List<String> suggestions,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -345,34 +442,89 @@ class _CreateMealDialogState extends State<CreateMealDialog> {
           ],
         ),
         const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: GoogleFonts.inter(
-              color: Colors.grey[400],
-              fontSize: 14,
+        Column(
+          children: [
+            TextField(
+              controller: controller,
+              focusNode: focusNode,
+              decoration: InputDecoration(
+                hintText: hint,
+                hintStyle: GoogleFonts.inter(
+                  color: Colors.grey[400],
+                  fontSize: 14,
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[300]!),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF54D3C2), width: 2),
+                ),
+              ),
+              style: GoogleFonts.inter(fontSize: 14),
             ),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF54D3C2), width: 2),
-            ),
-          ),
-          style: GoogleFonts.inter(fontSize: 14),
+            // Dropdown de sugerencias
+            if (suggestions.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.only(top: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                constraints: const BoxConstraints(maxHeight: 200),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.zero,
+                  itemCount: suggestions.length,
+                  itemBuilder: (context, index) {
+                    final suggestion = suggestions[index];
+                    return InkWell(
+                      onTap: () => _selectSuggestion(field, suggestion),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              color: index < suggestions.length - 1
+                                  ? Colors.grey[200]!
+                                  : Colors.transparent,
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          suggestion,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
         ),
       ],
     );

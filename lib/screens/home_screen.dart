@@ -97,7 +97,7 @@ class _HomeScreenState extends State<HomeScreen>
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Comida creada exitosamente'),
-                backgroundColor: Color(0xFF54D3C2),
+                backgroundColor: Color(0xFF5CC23D),
               ),
             );
           }
@@ -138,7 +138,7 @@ class _HomeScreenState extends State<HomeScreen>
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Item agregado exitosamente'),
-              backgroundColor: Color(0xFF54D3C2),
+              backgroundColor: Color(0xFF5CC23D),
             ),
           );
         } else if (provider.errorMessage != null) {
