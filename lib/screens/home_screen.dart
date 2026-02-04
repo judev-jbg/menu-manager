@@ -66,10 +66,18 @@ class _HomeScreenState extends State<HomeScreen>
   Future<void> _createMealDay() async {
     MealDay? result;
     bool shouldClose = false;
+    String? errorMessage;
 
     while (!shouldClose) {
+      // Limpiar el error del provider antes de mostrar el bottom sheet
+      // para que la lista de cards permanezca visible
+      if (!mounted) break;
+      context.read<MealsProvider>().clearError();
+
       // Obtener la lista actual de meals para calcular la fecha inicial
       final existingMeals = context.read<MealsProvider>().mealDays;
+
+      if (!mounted) break;
 
       result = await showModalBottomSheet<MealDay>(
         context: context,
@@ -79,6 +87,7 @@ class _HomeScreenState extends State<HomeScreen>
         builder: (context) => CreateMealDialog(
           mealDay: result,
           existingMeals: existingMeals,
+          externalError: errorMessage,
         ),
       );
 
@@ -102,16 +111,10 @@ class _HomeScreenState extends State<HomeScreen>
             );
           }
         } else {
-          // Error: mostrar mensaje pero NO cerrar el modal
+          // Error: pasar el mensaje al diálogo para mostrarlo inline
           if (mounted && provider.errorMessage != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(provider.errorMessage!),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 3),
-              ),
-            );
-            // El loop continúa, el modal se volverá a mostrar con los datos
+            errorMessage = provider.errorMessage;
+            // El loop continúa, el modal se volverá a mostrar con el error
           } else {
             shouldClose = true;
           }

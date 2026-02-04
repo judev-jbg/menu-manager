@@ -16,6 +16,7 @@ class CreateShoppingDialog extends StatefulWidget {
 class _CreateShoppingDialogState extends State<CreateShoppingDialog> {
   late TextEditingController _descriptionController;
   final ShoppingSuggestionsService _suggestionsService = ShoppingSuggestionsService();
+  String? _errorMessage; // Mensaje de error inline
 
   // Estado para las sugerencias
   List<String> _suggestions = [];
@@ -72,14 +73,16 @@ class _CreateShoppingDialogState extends State<CreateShoppingDialog> {
 
     // Validar que la descripción no esté vacía
     if (description.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('La descripción no puede estar vacía'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      setState(() {
+        _errorMessage = 'La descripción no puede estar vacía';
+      });
       return;
     }
+
+    // Limpiar mensaje de error si había uno
+    setState(() {
+      _errorMessage = null;
+    });
 
     // Guardar la descripción en las sugerencias
     await _suggestionsService.addSuggestion(description);
@@ -236,6 +239,34 @@ class _CreateShoppingDialogState extends State<CreateShoppingDialog> {
                 ),
               ],
             ),
+            const SizedBox(height: 16),
+
+            // Mensaje de error si existe
+            if (_errorMessage != null)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _errorMessage!,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: Colors.red[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 24),
 
             // Botones

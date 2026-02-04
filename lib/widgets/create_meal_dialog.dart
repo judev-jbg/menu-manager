@@ -8,8 +8,14 @@ import '../services/meal_suggestions_service.dart';
 class CreateMealDialog extends StatefulWidget {
   final MealDay? mealDay; // Si es null, es creación; si no, es edición
   final List<MealDay>? existingMeals; // Lista de meals existentes para calcular la fecha inicial
+  final String? externalError; // Error externo del provider
 
-  const CreateMealDialog({super.key, this.mealDay, this.existingMeals});
+  const CreateMealDialog({
+    super.key,
+    this.mealDay,
+    this.existingMeals,
+    this.externalError,
+  });
 
   @override
   State<CreateMealDialog> createState() => _CreateMealDialogState();
@@ -21,6 +27,7 @@ class _CreateMealDialogState extends State<CreateMealDialog> {
   late TextEditingController _dinnerController;
   late DateTime _selectedDate;
   bool _canSave = false;
+  String? _errorMessage; // Mensaje de error inline
 
   final MealSuggestionsService _suggestionsService = MealSuggestionsService();
 
@@ -39,6 +46,9 @@ class _CreateMealDialogState extends State<CreateMealDialog> {
   @override
   void initState() {
     super.initState();
+
+    // Si hay un error externo, mostrarlo
+    _errorMessage = widget.externalError;
 
     // Si estamos editando, usar los valores existentes
     if (_isEditing) {
@@ -216,14 +226,16 @@ class _CreateMealDialogState extends State<CreateMealDialog> {
     final dinner = _dinnerController.text.trim();
 
     if (breakfast.isEmpty && lunch.isEmpty && dinner.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Debes asignar al menos una comida'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      setState(() {
+        _errorMessage = 'Debes asignar al menos una comida';
+      });
       return;
     }
+
+    // Limpiar mensaje de error si había uno
+    setState(() {
+      _errorMessage = null;
+    });
 
     // Guardar las comidas en las sugerencias
     await _suggestionsService.addSuggestions([breakfast, lunch, dinner]);
@@ -345,15 +357,41 @@ class _CreateMealDialogState extends State<CreateMealDialog> {
               ),
               const SizedBox(height: 8),
 
-              // Nota informativa
-              Text(
-                'Al menos una comida debe estar asignada',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                  fontStyle: FontStyle.italic,
+              // Mensaje de error o nota informativa
+              if (_errorMessage != null)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            color: Colors.red[700],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Text(
+                  'Al menos una comida debe estar asignada',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
-              ),
               const SizedBox(height: 24),
 
               // Botones

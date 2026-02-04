@@ -23,8 +23,26 @@ class ShoppingSuggestionsService {
     final prefs = await SharedPreferences.getInstance();
     final currentSuggestions = await getSuggestions();
 
-    currentSuggestions.add(item.trim());
-    await prefs.setStringList(_storageKey, currentSuggestions.toList());
+    // Crear un mapa para evitar duplicados normalizados
+    final normalizedMap = <String, String>{};
+
+    // Primero, mapear las sugerencias existentes
+    for (var suggestion in currentSuggestions) {
+      final normalized = _normalize(suggestion);
+      if (!normalizedMap.containsKey(normalized)) {
+        normalizedMap[normalized] = suggestion;
+      }
+    }
+
+    // Agregar el nuevo item si no existe una versión normalizada
+    final trimmedItem = item.trim();
+    final normalized = _normalize(trimmedItem);
+
+    if (!normalizedMap.containsKey(normalized)) {
+      normalizedMap[normalized] = trimmedItem;
+    }
+
+    await prefs.setStringList(_storageKey, normalizedMap.values.toList());
   }
 
   // Busca sugerencias que coincidan con el query (búsqueda flexible)
@@ -57,19 +75,26 @@ class ShoppingSuggestionsService {
     return matches;
   }
 
-  // Normaliza texto: elimina tildes, convierte a minúsculas
+  // Normaliza texto: elimina tildes, signos de puntuación, convierte a minúsculas
   String _normalize(String text) {
     const withDiacritics = 'áéíóúÁÉÍÓÚñÑ';
     const withoutDiacritics = 'aeiouAEIOUnN';
 
     String normalized = text.toLowerCase();
 
+    // Eliminar tildes
     for (int i = 0; i < withDiacritics.length; i++) {
       normalized = normalized.replaceAll(
         withDiacritics[i],
         withoutDiacritics[i],
       );
     }
+
+    // Eliminar signos de puntuación y caracteres especiales
+    normalized = normalized.replaceAll(RegExp(r'[^\w\s]'), '');
+
+    // Eliminar espacios extra
+    normalized = normalized.trim().replaceAll(RegExp(r'\s+'), ' ');
 
     return normalized;
   }
